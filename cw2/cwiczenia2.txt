@@ -1,0 +1,285 @@
+CREATE SCHEMA sklep;
+SET search_path = sklep;
+
+-- Created by Vertabelo (http://vertabelo.com)
+-- Last modification date: 2020-10-14 17:54:38.435
+
+-- tables
+-- Table: producenci
+CREATE TABLE producenci (
+    id_producenta serial  NOT NULL,
+    nazwa_producenta varchar  NOT NULL,
+    mail varchar  NOT NULL,
+    telefon varchar  NOT NULL,
+    CONSTRAINT producenci_pk PRIMARY KEY (id_producenta)
+);
+
+-- Table: produkty
+CREATE TABLE produkty (
+    id_produktu serial  NOT NULL,
+    nazwa_produktu varchar  NOT NULL,
+    cena money  NOT NULL,
+    id_producenta int  NOT NULL,
+    CONSTRAINT produkty_pk PRIMARY KEY (id_produktu)
+);
+
+-- Table: zamowienia
+CREATE TABLE zamowienia (
+    id_zamowienia serial  NOT NULL,
+    id_produktu int  NOT NULL,
+    data date  NOT NULL,
+    ilosc int  NOT NULL,
+    CONSTRAINT zamowienia_pk PRIMARY KEY (id_zamowienia)
+);
+
+-- foreign keys
+-- Reference: produkty_producenci (table: produkty)
+ALTER TABLE produkty ADD CONSTRAINT produkty_producenci
+    FOREIGN KEY (id_producenta)
+    REFERENCES producenci (id_producenta)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: zamowienia_produkty (table: zamowienia)
+ALTER TABLE zamowienia ADD CONSTRAINT zamowienia_produkty
+    FOREIGN KEY (id_produktu)
+    REFERENCES produkty (id_produktu)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- End of file.
+
+
+--zad 6
+
+INSERT INTO sklep.producenci (nazwa_producenta, mail, telefon)
+VALUES
+('Wedel', 'wedel@gmail.com', '666111222'),
+('Mlekovita', 'mlekovita@gmail.com', '666111333'),
+('Alpro','alpro@gmail.com','666111444'),
+('Rolnik','rolnik@gmail.com', '666222555'),
+('Velvet','velvet@gmail.com','777444333'),
+('Tymbark', 'tymbark@gmail.com','888444777'),
+('Haribo', 'haribo@gmail.com','666555999'),
+('Oxford', 'oxford@gmail.com','567234098'),
+('Warzywko','warzywko@gmail.com', '516195506'),
+('Owocowo','owocowo@gmail.com','777809456');
+
+
+
+INSERT INTO sklep.produkty(nazwa_produktu, cena, id_producenta)
+VALUES
+('czkolada',4.29, 1),
+('mleko', 2.50, 2),
+('mleko sojowe', 9.50, 3),
+('korniszony', 7.80, 4),
+('papier toaletowy', 6.59, 5),
+('zelki', 5.50, 7),
+('zeszyt', 8.00, 8),
+('kapusta', 4.60, 9),
+('banan', 1.50, 10),
+('jablko', 1.30, 10);
+
+
+INSERT INTO sklep.zamowienia(id_produktu, data, ilosc)
+VALUES
+(1, '2020-02-21', 25),
+(2, '2020-02-23', 40),
+(5, '2020-03-10', 20),
+(2, '2020-03-12', 45),
+(6, '2020-04-02', 30),
+(8, '2020-04-05', 10),
+(9, '2020-04-12', 50),
+(9, '2020-06-09', 20),
+(4, '2020-06-17', 15),
+(9, '2020-07-02', 25);
+
+--zad 7,8,9,10
+
+pg_dump -U postgres s290942 > s290942.bak
+dropdb -U postgres s290942
+createdb -U postgres s290942_backup
+psql -U postgres s290942_backup < s290942.bak
+ALTER DATABASE s290942_backup RENAME TO s290942
+
+--zad 11
+
+--a
+SELECT CONCAT('Producent: ', nazwa_producenta, ', liczba zamowien: ', SUM(ilosc), ', wartosc zamowienia: ', SUM(ilosc*cena)) 
+FROM zamowienia 
+JOIN produkty ON produkty.id_produktu = zamowienia.id_produktu 
+JOIN producenci ON producenci.id_producenta = produkty.id_producenta 
+GROUP BY producenci.id_producenta;
+
+--b
+SELECT CONCAT('Produkt: ', nazwa_produktu,', liczba_zamowien: ', SUM(zamowienia.id_produktu)) 
+FROM zamowienia 
+JOIN produkty ON produkty.id_produktu = zamowienia.id_produktu 
+GROUP BY nazwa_produktu;
+
+--c
+SELECT * FROM zamowienia NATURAL JOIN produkty;
+
+--d
+jest pole data
+
+--e
+SELECT * FROM sklep.zamowienia WHERE DATE_PART('month', data) = 1;
+
+--f
+SELECT DATE_PART('dow', data) AS dzien_tygodnia, COUNT(id_zamowienia) 
+FROM zamowienia 
+GROUP BY dzien_tygodnia ORDER BY COUNT(id_zamowienia) DESC;
+
+--g
+SELECT nazwa_produktu, COUNT(zamowienia.id_produktu) as ilosc 
+FROM produkty 
+JOIN zamowienia ON zamowienia.id_produktu = produkty.id_produktu 
+GROUP BY produkty.nazwa_produktu 
+ORDER BY ilosc DESC;
+
+
+--zad 12
+
+--a
+SELECT CONCAT('Produkt ',UPPER(nazwa_produktu), ' którego producentem jest ', LOWER(nazwa_producenta), ', zamówiono ', COUNT(id_zamowienia), ' razy') AS opis 
+FROM zamowienia 
+JOIN produkty ON zamowienia.id_produktu = produkty.id_produktu 
+JOIN producenci ON produkty.id_producenta = producenci.id_producenta 
+GROUP BY nazwa_produktu,nazwa_producenta;
+
+--b
+SELECT id_zamowienia, zamowienia.id_produktu, cena*ilosc AS wartosc_zamowenia  
+FROM zamowienia 
+JOIN produkty ON zamowienia.id_produktu = produkty.id_produktu 
+WHERE (cena*ilosc) 
+NOT IN (SELECT cena*ilosc FROM zamowienia 
+JOIN produkty ON zamowienia.id_produktu = produkty.id_produktu 
+ORDER BY cena*ilosc DESC LIMIT 3);
+
+
+--c
+CREATE TABLE klienci(id_klienta SERIAL PRIMARY KEY,mail VARCHAR(255) NOT NULL,telefon VARCHAR(255) NOT NULL);
+
+--d
+ALTER TABLE zamowienia ADD id_klienta INT;
+ALTER TABLE zamowienia 
+ADD CONSTRAINT fk_zamowienia_klienci FOREIGN KEY (id_klienta) REFERENCES klienci(id_klienta);
+
+INSERT INTO klienci(mail,telefon) VALUES('klient1','567456234');
+INSERT INTO klienci(mail,telefon) VALUES('klient2','122678345');
+INSERT INTO klienci(mail,telefon) VALUES('klient3','890567345');
+INSERT INTO klienci(mail,telefon) VALUES('klient4','777888999');
+INSERT INTO klienci(mail,telefon) VALUES('klient5','345234890');
+INSERT INTO klienci(mail,telefon) VALUES('klient6','668450890');
+INSERT INTO klienci(mail,telefon) VALUES('klient7','516345009');
+INSERT INTO klienci(mail,telefon) VALUES('klient8','503405679');
+INSERT INTO klienci(mail,telefon) VALUES('klient9','567234008');
+INSERT INTO klienci(mail,telefon) VALUES('klient10','789444304');
+
+UPDATE zamowienia SET id_klienta = 1 WHERE id_zamowienia = 1;
+UPDATE zamowienia SET id_klienta = 1 WHERE id_zamowienia = 2;
+UPDATE zamowienia SET id_klienta = 1 WHERE id_zamowienia = 3;
+UPDATE zamowienia SET id_klienta = 2 WHERE id_zamowienia = 4;
+UPDATE zamowienia SET id_klienta = 3 WHERE id_zamowienia = 5;
+UPDATE zamowienia SET id_klienta = 6 WHERE id_zamowienia = 6;
+UPDATE zamowienia SET id_klienta = 6 WHERE id_zamowienia = 7;
+UPDATE zamowienia SET id_klienta = 8 WHERE id_zamowienia = 8;
+UPDATE zamowienia SET id_klienta = 9 WHERE id_zamowienia = 9;
+UPDATE zamowienia SET id_klienta = 10 WHERE id_zamowienia = 10;
+
+
+--e
+
+SELECT mail, telefon, nazwa_produktu, ilosc, (ilosc * cena) AS wartość_zamówienia 
+FROM zamowienia 
+JOIN klienci ON zamowienia.id_klienta = klienci.id_klienta 
+JOIN produkty ON produkty.id_produktu = zamowienia.id_produktu;
+
+--f
+
+SELECT CONCAT('NAJCZĘŚCIEJ ZAMAWIAJĄCY: ', mail, ' telefon: ',telefon, ' całkowita kwota zamówień: ', cena) 
+FROM (SELECT mail,telefon,SUM(cena*ilosc) AS cena FROM zamowienia INNER JOIN klienci 
+ON zamowienia.id_klienta=klienci.id_klienta 
+JOIN produkty 
+ON produkty.id_produktu=zamowienia.id_produktu 
+GROUP BY zamowienia.id_klienta,mail,telefon
+ORDER BY COUNT(zamowienia.id_klienta) DESC LIMIT 1) as Najczestszy 
+UNION SELECT CONCAT('NAJRZADZIEJ ZAMAWIAJĄCY: ', mail, ' telefon: ',telefon, ' całkowita kwota zamówień: ', cena) 
+FROM (SELECT mail,telefon,SUM(cena*ilosc) AS cena 
+FROM zamowienia 
+JOIN klienci 
+ON zamowienia.id_klienta=klienci.id_klienta 
+INNER JOIN produkty 
+ON produkty.id_produktu = zamowienia.id_produktu 
+GROUP BY zamowienia.id_klienta,mail,telefon
+ORDER BY COUNT(zamowienia.id_klienta) LIMIT 1) AS najrzadziej;
+
+
+--g
+
+DELETE FROM produkty 
+WHERE id_produktu IN (SELECT produkty.id_produktu 
+FROM produkty 
+WHERE id_produktu 
+NOT IN (SELECT id_produktu FROM zamowienia));
+
+
+
+--zad 13
+
+--a
+CREATE TABLE numer(liczba INT CHECK(liczba BETWEEN 0 AND 9999));
+
+--b
+CREATE SEQUENCE liczba_seq START WITH 100 INCREMENT BY 5 MINVALUE 0 MAXVALUE 125 CYCLE;
+
+--c
+INSERT INTO numer VALUES(nextval('liczba_seq')); 
+INSERT INTO numer VALUES(nextval('liczba_seq')); 
+INSERT INTO numer VALUES(nextval('liczba_seq')); 
+INSERT INTO numer VALUES(nextval('liczba_seq')); 
+INSERT INTO numer VALUES(nextval('liczba_seq')); 
+INSERT INTO numer VALUES(nextval('liczba_seq')); 
+INSERT INTO numer VALUES(nextval('liczba_seq')); 
+
+--d
+ALTER SEQUENCE liczba_seq INCREMENT BY 6;
+
+--e
+SELECT currval('liczba_seq');
+SELECT nextval('liczba_seq');	
+
+--f
+DROP sequence liczba_seq;
+
+
+
+--zad 14
+
+--a
+SELECT * FROM pg_catalog.pg_user;
+można też poprzez \du
+
+--b
+CREATE USER Superuser290942 SUPERUSER;
+CREATE USER guest290942;
+GRANT SELECT ON ALL TABLES IN SCHEMA firma TO guest290942;
+GRANT SELECT ON ALL TABLES IN SCHEMA sklep TO guest290942;
+\du
+
+--c
+ALTER USER Superuser290942 RENAME TO student;
+ALTER USER student WITH NOSUPERUSER;
+GRANT SELECT ON ALL TABLES IN SCHEMA firma TO guest290942;
+DROP OWNED BY guest290942;
+DROP USER guest290942;
+
+
+
+
+
+
+
