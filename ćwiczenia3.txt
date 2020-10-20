@@ -33,6 +33,7 @@ INSERT INTO punkty_informacyjne(geometria, nazwa) VALUES
 (ST_GeomFromText('POINT(6.5 6)'), 'J'),
 (ST_GeomFromText('POINT(6 9.5)'), 'K');
 
+
 --zad6
 -- a
 SELECT SUM(ST_Length(geometria)) FROM drogi;
@@ -82,44 +83,3 @@ SELECT ST_Area((SELECT geometria FROM budynki WHERE nazwa='BuildingC'))
 
 
 
-
-f. Wypisz pole powierzchni tej części budynku BuildingC, która znajduje się w odległości większej niż 0.5 od budynku BuildingB.
-SELECT ST_Area(geom)
-FROM 
-(
-SELECT ST_Intersection
-(
-(
-SELECT geometria 
-FROM budynki 
-WHERE nazwa='BuildingC'
-), 
-ST_Buffer
-(
-(
-SELECT geometria 
-							FROM budynki 
-							WHERE nazwa='BuildingB'
-), 
-0.5
-)	
-)
-AS geom
-) 
-AS pole;
-
-nawiasy potraktuj jak wąsy w Javie xD chociaz i tak ciezko sie połapać
-
-
-g. Wybierz te budynki, których centroid (ST_Centroid) znajduje się powyżej drogi o nazwie RoadX. 
-
-SELECT nazwa FROM budynki WHERE ST_Y(ST_Centroid(budynki.geometria)) > ST_Y(ST_PointN((SELECT geometria FROM drogi WHERE nazwa = 'RoadX'),1));
-
-h. Oblicz pole powierzchni tych części budynku BuildingC i poligonu
-o współrzędnych (4 7, 6 7, 6 8, 4 8, 4 7), które nie są wspólne dla tych dwóch obiektów.
-SELECT ST_Area((SELECT geometria FROM budynki WHERE nazwa='BuildingC'))
-	+ ST_Area('POLYGON((4 7, 6 7, 6 8, 4 8, 4 7))')
-	- 2*ST_Area(ST_Intersection( 
-		(SELECT geometria FROM budynki WHERE nazwa='BuildingC'),
-		'POLYGON((4 7, 6 7, 6 8, 4 8, 4 7))')) 
-	AS pole;
