@@ -1,0 +1,44 @@
+-- 1, 2, 3 importowanie plików poprzez gui
+
+-- 4
+SELECT COUNT(*) FROM 
+(SELECT COUNT(popp.gid)
+FROM popp, majrivers 
+WHERE popp.f_codedesc LIKE 'Building' 
+GROUP BY popp.gid 
+HAVING MIN(ST_Distance(majrivers.geom, popp.geom)) < 100000) as liczba_budynków;
+
+
+CREATE TABLE tableB AS SELECT popp.*
+FROM popp, majrivers 
+WHERE popp.f_codedesc LIKE 'Building' 
+GROUP BY popp.gid 
+HAVING MIN(ST_Distance(majrivers.geom, popp.geom)) < 100000;
+
+-- 5
+CREATE TABLE airportsNew 
+AS SELECT name, geom, elev
+FROM airports;
+
+-- a 
+SELECT MAX(ST_Y(geom)), MIN(ST_Y(geom)) FROM airportsNew; 
+
+-- b
+INSERT INTO airportsNew VALUES 
+('airportB', 
+ ST_CENTROID(ST_MakeLine(
+	 		(SELECT geom FROM airportsNew WHERE ST_Y(geom) = (SELECT MIN(ST_Y(geom)) FROM airportsNew)), 
+			(SELECT geom FROM airportsNew WHERE ST_Y(geom) = (SELECT MAX(ST_Y(geom)) FROM airportsNew)))), 100);
+ 
+-- 6
+SELECT ST_Area(geometr)
+FROM (SELECT ST_Buffer(ST_ShortestLine(
+	(SELECT geom FROM lakes WHERE names='Iliamna Lake'),
+	(SELECT geom FROM airports WHERE name='AMBLER')), 1000) AS geometr)
+	AS pole;
+
+-- 7
+-- Jesli zalozymy, że cała alaska jest tundrą i bagnami:
+SELECT vegdesc AS type, sum(area_km2) as total_area
+FROM trees 
+GROUP BY vegdesc, f_codedesc;
