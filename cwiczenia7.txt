@@ -1,0 +1,18 @@
+-- utworzenie nowej bazy danych
+CREATE DATABASE ex7;
+
+-- przywrocenie struktury bazy danych z pliku postgis_raster.backup
+-- wczesniej aby wszystko dobrze sie wczytalo, usunelam schema public
+-- w cmd:
+pg_restore -h localhost -p 5432 -U postgres -d ex7 -1 C:\Users\Karolina\Desktop\szkola\7semestr\bazy_danych_przestrzennnych\cwiczenia\cw7\postgis_raster.backup
+
+-- Po przywróceniu bazy upewniam się, że jest w niej ustawione rozszerzenie postgis_raster:
+CREATE EXTENSION postgis_raster;
+
+-- Pliki Landsat8_L1TP_RGBN.tif oraz srtm_1arc_v3.tif załadowuję do schematurasters. W tym celu używam narzędzia raster2pgsql.
+-- Przechodzę do: C:\Program Files\PostgreSQL\11\bin
+raster2pgsql.exe -s 3763 -N -32767 -t 100x100 -I -C -M -d srtm_1arc_v3.tif rasters.dem | psql -d ex7 -h localhost -U postgres -p 5432
+raster2pgsql.exe -s 3763 -N -32767 -t 128x128 -I -C -M -d Landsat8_L1TP_RGBN.tif rasters.landsat8 | psql -d ex7 -h localhost -U postgres -p 5432
+
+-- na końcu zmieniam nazwę tego schematu schema_name na swoje nazwisko
+ALTER SCHEMA schema_name RENAME to wozniczka;
